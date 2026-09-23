@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Калькулятор КП — разработка ботов</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- Шаг 0: выбор — готовый продукт или бот под ключ -->
+  <section id="step-type" class="card">
+    <h1>Калькулятор стоимости</h1>
+    <p class="muted">Что вам нужно?</p>
+    <div class="type-cards">
+      <div class="type-card" data-type="quiz">
+        <div class="type-emoji">🤖</div>
+        <div class="type-name">Разработка бота под ключ</div>
+        <div class="type-desc">Квиз 7–9 вопросов → вилка цены, сроки, «что входит»</div>
+      </div>
+      <div class="type-card" data-type="ready">
+        <div class="type-emoji">📦</div>
+        <div class="type-name">Готовый продукт</div>
+        <div class="type-desc">LOCA, анализ тональности, контент, GEO — фикс. тарифы</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Шаг 1: готовый продукт (фикс. тарифы) -->
+  <section id="step-ready" class="card hidden">
+    <h2>Готовые продукты</h2>
+    <select id="ready-product"></select>
+    <div id="ready-tariffs" class="opts"></div>
+    <div class="nav">
+      <button class="btn ghost" data-back>← Назад</button>
+      <button class="btn" id="ready-next">Показать цену →</button>
+    </div>
+  </section>
+
+  <!-- Шаг 2: квиз-воронка (один вопрос на экран) -->
+  <section id="step-quiz" class="card hidden">
+    <div class="progress-track"><div class="progress-fill" id="quiz-progress"></div></div>
+    <div class="counter" id="quiz-counter"></div>
+    <div id="quiz-title" class="q-title"></div>
+    <div id="quiz-hint" class="muted"></div>
+    <div id="quiz-body" class="opts"></div>
+    <div class="nav">
+      <button class="btn ghost" id="quiz-prev">← Назад</button>
+      <button class="btn" id="quiz-next">Далее →</button>
+    </div>
+  </section>
+
+  <!-- Шаг 3: специальные экраны (созвон / мягкий выход) -->
+  <section id="step-special" class="card hidden">
+    <div id="special-emoji" class="big-emoji"></div>
+    <h2 id="special-title"></h2>
+    <p id="special-text" class="muted"></p>
+    <div class="nav">
+      <button class="btn ghost" id="special-back">← Назад</button>
+      <button class="btn" id="special-next">Продолжить</button>
+    </div>
+  </section>
+
+  <!-- Шаг 4: контакты + ПДн -->
+  <section id="step-contact" class="card hidden">
+    <h2>Куда прислать КП?</h2>
+    <div id="contact-options" class="opts"></div>
+    <div id="contact-fields"></div>
+    <div class="pd-quote muted" id="contact-quote"></div>
+    <label class="check-row">
+      <input type="checkbox" id="pd-consent">
+      <span>Согласен(а) на обработку персональных данных (152-ФЗ)</span>
+    </label>
+    <div class="nav">
+      <button class="btn ghost" id="contact-back">← Назад</button>
+      <button class="btn" id="contact-next">Показать КП →</button>
+    </div>
+  </section>
+
+  <!-- Шаг 5: результат -->
+  <section id="step-result" class="card hidden">
+    <h2>Вилка стоимости</h2>
+    <div id="result-emoji" class="big-emoji">🤖</div>
+    <div id="result-summary"></div>
+    <div id="result-next"></div>
+    <div class="nav">
+      <button class="btn ghost" data-result-back>← Начать заново</button>
+      <button class="btn" id="btn-kp">Сформировать КП (PDF/печать)</button>
+    </div>
+  </section>
+
+</div>
+<script src="static/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+{
+  "version": 2,
+  "intro": "Ответьте на несколько вопросов — посчитаем вилку стоимости вашего бота. Займёт 2 минуты, один вопрос на экран.",
+
+  "weights": {
+    "base": { "scripted": 30000, "ai": 80000 },
+    "platform_extra": 1.3,
+    "platform_multi": 1.8,
+    "integration_crm": 10000,
+    "integration_payments": 15000,
+    "integration_sheets": 5000,
+    "admin_panel": 20000,
+    "ai_knowledge": 20000,
+    "ai_finetune": 40000,
+    "local_multiplier": 2.0,
+    "urgency_multiplier": 1.5,
+    "range_min_factor": 0.9,
+    "range_max_factor": 1.3
+  },
+
+  "screens": [
+    {
+      "id": "purpose",
+      "question": "Для чего вам нужен бот?",
+      "type": "single",
+      "options": [
+        { "value": "sell",     "label": "Продавать товары/услуги через бота", "emoji": "🛒" },
+        { "value": "support",  "label": "Отвечать на вопросы клиентов (поддержка)", "emoji": "🎧" },
+        { "value": "booking",  "label": "Записывать клиентов (услуги, встречи)", "emoji": "📅" },
+        { "value": "ai_sales", "label": "Бот с AI, который общается как человек", "emoji": "🤖" },
+        { "value": "internal", "label": "Внутренний бот для сотрудников", "emoji": "📊" },
+        { "value": "not_sure", "label": "Пока не знаю, хочу разобраться", "emoji": "🤔" }
+      ],
+      "next": "budget",
+      "overrides": { "not_sure": "consult" }
+    },
+    {
+      "id": "budget",
+      "question": "Есть ли уже понимание бюджета?",
+      "hint": "Не в лоб, просто вилка — чтобы подобрать подходящий вариант.",
+      "type": "single",
+      "options": [
+        { "value": "below_30k", "label": "До 30 000 ₽ (шаблонное решение)" },
+        { "value": "mid_30_100", "label": "30 000 – 100 000 ₽ (типовой бот под ключ)" },
+        { "value": "high_100_300", "label": "100 000 – 300 000 ₽ (с интеграциями и AI)" },
+        { "value": "premium_300", "label": "Больше 300 000 ₽ (сложный проект)" },
+        { "value": "not_sure", "label": "Пока не понимаю, хочу сориентироваться" }
+      ],
+      "next": "platform"
+    },
+    {
+      "id": "platform",
+      "question": "Где будет работать бот?",
+      "hint": "Можно выбрать несколько. Каждая платформа добавляет множитель к цене.",
+      "type": "multi",
+      "options": [
+        { "value": "tg",     "label": "Telegram" },
+        { "value": "wa",     "label": "WhatsApp" },
+        { "value": "vk",     "label": "ВКонтакте" },
+        { "value": "widget", "label": "Виджет на сайте" },
+        { "value": "multi",  "label": "Мультиплатформа (везде один бот)" }
+      ],
+      "next": "brain"
+    },
+    {
+      "id": "brain",
+      "question": "Как бот будет отвечать?",
+      "hint": "Это главный вопрос: определяет ветку квиза и цену.",
+      "type": "single",
+      "options": [
+        { "value": "scripted", "label": "По готовому сценарию (кнопки, меню)", "emoji": "📋", "next": "capabilities" },
+        { "value": "ai",       "label": "С искусственным интеллектом", "emoji": "🧠", "next": "ai_base" },
+        { "value": "hybrid",   "label": "Гибрид: бот + живой менеджер", "emoji": "🤝", "next": "consult" },
+        { "value": "help_me",  "label": "Помогите определить", "emoji": "❓", "next": "consult" }
+      ]
+    },
+    {
+      "id": "capabilities",
+      "question": "Что бот должен уметь?",
+      "type": "multi",
+      "options": [
+        { "value": "faq",          "label": "Отвечать на типовые вопросы (FAQ)" },
+        { "value": "lead_form",    "label": "Собирать контакты (лид-форма)" },
+        { "value": "booking",      "label": "Записывать на услугу/встречу" },
+        { "value": "payments",     "label": "Принимать оплату" },
+        { "value": "notifications", "label": "Присылать уведомления" },
+        { "value": "admin",        "label": "Панель управления для менеджера", "weight": "admin_panel" }
+      ],
+      "next": "integrations"
+    },
+    {
+      "id": "integrations",
+      "question": "С какими системами связать бота?",
+      "type": "multi",
+      "options": [
+        { "value": "crm",     "label": "amoCRM / Bitrix24", "weight": "integration_crm" },
+        { "value": "sheets",  "label": "Google Таблицы / Яндекс.Диск", "weight": "integration_sheets" },
+        { "value": "pay",     "label": "Платёжные системы (ЮKassa и пр.)", "weight": "integration_payments" },
+        { "value": "none",    "label": "Никаких, пока сам по себе" },
+        { "value": "not_sure", "label": "Не знаю, нужна помощь" }
+      ],
+      "next": "deadline"
+    },
+    {
+      "id": "ai_base",
+      "question": "На чём будет «умнеть» бот?",
+      "type": "single",
+      "options": [
+        { "value": "knowledge", "label": "Отвечать по моей базе знаний (документы, сайт, прайсы)", "weight": "ai_knowledge" },
+        { "value": "general",   "label": "Общая эрудиция + немного про мой бизнес" },
+        { "value": "finetune",  "label": "Дообучение на моих данных (RAG)", "weight": "ai_finetune" },
+        { "value": "not_sure",  "label": "Пока не знаю, расскажите варианты" }
+      ],
+      "next": "ai_constraints"
+    },
+    {
+      "id": "ai_constraints",
+      "question": "Есть ли ограничения по использованию сервисов?",
+      "type": "single",
+      "options": [
+        { "value": "foreign",    "label": "Можно зарубежные модели (GPT, Claude)" },
+        { "value": "russian",    "label": "Нужны российские аналоги (YandexGPT, GigaChat)" },
+        { "value": "local_only", "label": "Данные нельзя передавать за рубеж / в облако", "weight": "local_multiplier" },
+        { "value": "none",       "label": "Нет ограничений" }
+      ],
+      "next": "ai_fallback"
+    },
+    {
+      "id": "ai_fallback",
+      "question": "Что будет, если AI не знает ответ?",
+      "type": "single",
+      "options": [
+        { "value": "handoff",   "label": "Скажет «не знаю» и передаст менеджеру" },
+        { "value": "always",    "label": "Должен пытаться ответить в любом случае" },
+        { "value": "moderated", "label": "Нужна модерация ответов (не говорить лишнего)" }
+      ],
+      "next": "deadline"
+    },
+    {
+      "id": "deadline",
+      "question": "Когда нужен готовый бот?",
+      "type": "single",
+      "options": [
+        { "value": "urgent",   "label": "Вчера 🔥 (срочно)", "weight": "urgency_multiplier" },
+        { "value": "two_weeks", "label": "В течение 2 недель" },
+        { "value": "month",    "label": "В течение месяца" },
+        { "value": "no_rush",  "label": "Не горит, планируем заранее" }
+      ],
+      "next": "decision"
+    },
+    {
+      "id": "decision",
+      "question": "Кто принимает решение по проекту?",
+      "type": "single",
+      "options": [
+        { "value": "self",    "label": "Я сам решаю" },
+        { "value": "partner", "label": "Согласую с партнёром / руководством" },
+        { "value": "tender",  "label": "Это тендер / сравнение подрядчиков" }
+      ],
+      "next": "contact"
+    },
+    {
+      "id": "contact",
+      "question": "Куда прислать КП?",
+      "type": "contact",
+      "next": "result"
+    }
+  ],
+
+  "ready": {
+    "loca": {
+      "name": "LOCA — локальный AI-бот (152-ФЗ)",
+      "describe": "Коробочный AI-ассистент: работает на вашем сервере/ПК, без облака. RAG-консультации по базе знаний и анализ тональности — включены по умолчанию.",
+      "tariffs": [
+        {
+          "id": "lite", "name": "LOCA Lite", "price": 49900,
+          "note": "ИП, малый бизнес. Обслуживание 1 мес включено",
+          "included": [
+            "Локальный AI-чат (веб-интерфейс, без облака)",
+            "RAG-консультации по базе знаний — по умолчанию",
+            "Соответствие 152-ФЗ: данные не покидают устройство",
+            "Работа без интернета",
+            "Анализ тональности отзывов",
+            "1 месяц сопровождения"
+          ]
+        },
+        {
+          "id": "standard", "name": "LOCA Standard", "price": 149000,
+          "note": "Настройка под отрасль, SLA, обновления 1 год",
+          "included": [
+            "Всё из LOCA Lite",
+            "Настройка под вашу отрасль",
+            "Полноценный RAG по документам клиента (сборка базы знаний)",
+            "Выбор модели из установленных в Ollama",
+            "Обновления 1 год",
+            "SLA: ответ за 24ч"
+          ]
+        },
+        {
+          "id": "enterprise", "name": "LOCA Enterprise", "price": 299000,
+          "note": "White-label, интеграции, SLA 24/7",
+          "included": [
+            "Всё из LOCA Standard",
+            "White-label (ваш бренд)",
+            "Установка на ваш сервер / в вашу сеть",
+            "Интеграции с CRM и внутренними системами",
+            "SLA 24/7"
+          ]
+        },
+        {
+          "id": "premium", "name": "LOCA Premium", "price": null,
+          "note": "Кастомные разработки — индивидуально",
+          "included": [
+            "Всё из LOCA Enterprise",
+            "Дообучение модели на данных клиента",
+            "Выделенный инженер на проекте"
+          ]
+        }
+      ]
+    },
+    "sentiment": {
+      "name": "Анализ тональности отзывов",
+      "tariffs": [
+        {
+          "id": "single", "name": "Разовый анализ", "price": 5000,
+          "note": "До 500 отзывов",
+          "included": ["Анализ до 500 отзывов", "Отчёт в Excel", "Рекомендации по улучшению"]
+        },
+        {
+          "id": "subscription", "name": "Абонемент", "price": 15000,
+          "note": "Еженедельный анализ",
+          "included": ["Еженедельный анализ", "Отчёты на email", "Дашборд с трендами"]
+        }
+      ]
+    },
+    "content": {
+      "name": "AI-контент для соцсетей",
+      "tariffs": [
+        {
+          "id": "pack10", "name": "Пакет 10 постов", "price": 10000,
+          "note": "10 постов + 3 визуала",
+          "included": ["10 постов", "3 визуала (Midjourney)", "Публикация в Telegram"]
+        }
+      ]
+    },
+    "geo": {
+      "name": "GEO-продвижение",
+      "tariffs": [
+        {
+          "id": "audit", "name": "Аудит", "price": 25000,
+          "note": "GEO-аудит присутствия",
+          "included": ["Анализ текущего присутствия", "Отчёт с рекомендациями", "Топ-10 запросов"]
+        },
+        {
+          "id": "start", "name": "Старт", "price": 50000,
+          "note": "GEO-оптимизация под ключ",
+          "included": ["Оптимизация профилей", "Написание статей", "Настройка аналитики"]
+        },
+        {
+          "id": "support", "name": "Поддержка", "price": 35000,
+          "note": "Ежемесячная поддержка GEO",
+          "included": ["Ежемесячный мониторинг", "Обновление статей", "Отчёты о позициях"]
+        }
+      ]
+    }
+  },
+
+  "rules": {
+    "consult_threshold_notsure": 3,
+    "consult_min_budget": ["high_100_300", "premium_300"]
+  },
+
+  "consult": {
+    "title": "Проект интересный — давайте созвонимся",
+    "text": "Вижу, что у проекта есть нюансы. Чтобы не считать «по пальцам» и дать точную цену, давайте созвонимся на 15 минут — это бесплатно и ни к чему не обязывает."
+  },
+
+  "soft_exits": {
+    "low_budget_ai": {
+      "trigger": { "budget": "below_30k", "branch": "ai" },
+      "title": "Понимаю вас",
+      "message": "За бюджет до 30 000 ₽ мы можем предложить готовый шаблонный бот с минимальными настройками. Если нужно больше — вернёмся к разговору, когда будет возможность."
+    },
+    "just_curious": {
+      "trigger": { "purpose": "not_sure", "budget": "not_sure" },
+      "title": "Сориентирую",
+      "message": "Пришлю общий прайс, чтобы было с чем сравнивать. Если надумаете — напишите."
+    }
+  },
+
+  "pd": {
+    "quote": "Оставляя контакты, вы соглашаетесь с политикой конфиденциальности. Напишу только по делу: пришлю КП и, возможно, один раз напомню."
+  }
+}
