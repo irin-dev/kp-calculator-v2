@@ -116,7 +116,11 @@
   function quizReadyProducts() {
     // Готовые продукты в v2 читаем из quiz.json (блок «ready»).
     // Если его там нет — используем заглушку, чтобы страница не падала.
-    return quiz.ready || {};
+    // Ключи, начинающиеся с "_" (служебные заметки вроде _comment), — не продукты.
+    const ready = quiz.ready || {};
+    return Object.fromEntries(
+      Object.entries(ready).filter(([id, p]) => !id.startsWith("_") && p && p.name)
+    );
   }
 
   function renderTariffs() {
