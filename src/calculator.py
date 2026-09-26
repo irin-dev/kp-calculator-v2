@@ -13,6 +13,10 @@ calculator.py — движок расчёта КП (версия 2)
 6. Собираем СКОРИНГ лида — метки для CRM (горячий/тёплый, тип, бюджет).
 
 База `quiz` поставляется из data/quiz.json — там ВЕСА формулы и вопросы.
+
+⚠️ Матрица цен в data/quiz.json — УЧЕБНАЯ (демонстрационная). Она нужна,
+чтобы формула считала, а не чтобы продавать по этим цифрам. В коммерческом
+проекте заменяете блок `weights` и каталог `ready` на свои значения.
 """
 import json
 import os
@@ -90,8 +94,8 @@ def collect_parameters(answers, quiz=None):
       * integrations  — сумма денежных весов за интеграции (рубли)
       * admin_panel   — нужна ли админ-панель (bool)
       * ai_module     — вклад модуля AI: база знаний / дообучение (рубли)
-      * local_only    — данные нельзя в облако (множитель ×2)
-      * urgent        — срочность (множитель ×1.5)
+      * local_only    — данные нельзя в облако (множитель ×1.6)
+      * urgent        — срочность (множитель ×1.3)
 
     ⚙️ Как отличаем «рубль» от «множителя» в таблице весов (quiz.json):
        * веса ≥ 1000  → это денежное слагаемое (интеграция = +10 000 ₽)
@@ -379,11 +383,11 @@ def evaluate(answers, quiz=None):
         if "admin" in _picked(answers, "capabilities"):
             included.append("Панель управления для менеджера")
     elif branch == "ai":
-        included.append("AI-бот на локальной модели (без подписок на API)")
+        included.append("ИИ-бот с ответами по вашей базе знаний")
         if "knowledge" in _picked(answers, "ai_base") or "finetune" in _picked(answers, "ai_base"):
-            included.append("Подключение вашей базы знаний (RAG)")
+            included.append("Загрузка и настройка базы знаний")
         if answers.get("ai_constraints") == "local_only":
-            included.append("Локальное развёртывание — данные не покидают сервер")
+            included.append("Развёртывание в вашем контуре (без облака)")
     included.append("Договор, передача, консультация по запуску")
 
     return {

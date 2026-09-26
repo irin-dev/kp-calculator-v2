@@ -95,13 +95,13 @@ class TestBranchAndParams(unittest.TestCase):
             capabilities=["faq", "admin"],
             integrations=["crm", "pay"],
         ))
-        # CRM 10 000 + платёжка 15 000
-        self.assertEqual(p["integrations"], 25000)
+        # CRM 8 000 + платёжка 12 000
+        self.assertEqual(p["integrations"], 20000)
         self.assertTrue(p["admin_panel"])
 
     def test_collect_parameters_ai_module(self):
         p = collect_parameters(ai_answers(ai_base="finetune"))
-        self.assertEqual(p["ai_module"], 40000)  # дообучение/RAG
+        self.assertEqual(p["ai_module"], 30000)  # дообучение
 
     def test_collect_parameters_local_and_urgent(self):
         p = collect_parameters(ai_answers(
@@ -116,34 +116,34 @@ class TestFormula(unittest.TestCase):
     """Шаг 3: формула и вилка цены."""
 
     def test_scripted_base_min_platform(self):
-        # 30 000 × 1.0 = 30 000 → мин 27 000, макс 39 000
+        # 25 000 × 1.0 = 25 000 → мин 22 000, макс 31 000
         r = estimate_range(scripted_answers(platform=["tg"]))
-        self.assertEqual(r["min"], 27000)
-        self.assertEqual(r["max"], 39000)
-        self.assertEqual(r["estimate"], 30000)
+        self.assertEqual(r["min"], 22000)
+        self.assertEqual(r["max"], 31000)
+        self.assertEqual(r["estimate"], 25000)
 
     def test_scripted_extra_platform(self):
-        # 30 000 × 1.3 = 39 000 → мин 35 100→35 000, макс 50 700→51 000
+        # 25 000 × 1.25 = 31 250 → мин 28 000, макс 39 000
         r = estimate_range(scripted_answers(platform=["tg", "wa"]))
-        self.assertEqual(r["min"], 35000)
-        self.assertEqual(r["max"], 51000)
+        self.assertEqual(r["min"], 28000)
+        self.assertEqual(r["max"], 39000)
 
     def test_ai_base(self):
-        # 80 000 × 1.0 = 80 000 → мин 72 000, макс 104 000
+        # 60 000 × 1.0 = 60 000 → мин 54 000, макс 75 000
         r = estimate_range(ai_answers())
-        self.assertEqual(r["min"], 72000)
-        self.assertEqual(r["max"], 104000)
+        self.assertEqual(r["min"], 54000)
+        self.assertEqual(r["max"], 75000)
 
     def test_ai_knowledge_local_urgent(self):
-        # (80 000 + 20 000) × 2.0 × 1.5 = 300 000 → мин 270 000, макс 390 000
+        # (60 000 + 15 000) × 1.6 × 1.3 = 156 000 → мин 140 000, макс 195 000
         r = estimate_range(ai_answers(
-            ai_base="knowledge",      # +20 000 (база знаний)
-            ai_constraints="local_only",  # ×2
-            deadline="urgent",             # ×1.5
+            ai_base="knowledge",          # +15 000 (база знаний)
+            ai_constraints="local_only",  # ×1.6
+            deadline="urgent",            # ×1.3
         ))
-        self.assertEqual(r["estimate"], 300000)
-        self.assertEqual(r["min"], 270000)
-        self.assertEqual(r["max"], 390000)
+        self.assertEqual(r["estimate"], 156000)
+        self.assertEqual(r["min"], 140000)
+        self.assertEqual(r["max"], 195000)
 
     def test_hybrid_has_no_price(self):
         # Гибрид не считаем — ведём на созвон
@@ -259,7 +259,7 @@ class TestEvaluate(unittest.TestCase):
     def test_full_ai(self):
         res = evaluate(ai_answers())
         self.assertEqual(res["branch"], "ai")
-        self.assertIn("AI-бот", res["included"][0])
+        self.assertIn("ИИ-бот", res["included"][0])
 
 
 if __name__ == "__main__":

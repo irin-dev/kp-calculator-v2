@@ -29,6 +29,9 @@
   // ---- helpers -------------------------------------------------------------
   const el = (id) => document.getElementById(id);
 
+  // Пометка о демо-матрице цен: в этом репозитории числа учебные.
+  const DEMO_NOTE = "Учебный пример: матрица цен демонстрационная, не является офертой.";
+
   function show(id) {
     ["step-type", "step-ready", "step-quiz", "step-special", "step-contact", "step-result"].forEach(
       (s) => el(s).classList.toggle("hidden", s !== id)
@@ -174,6 +177,7 @@
         ${product.describe ? `<p class="muted product-desc">${escHtml(product.describe)}</p>` : ""}
         <div class="price-vilka">${fmtMoney(price)}</div>
         <div class="price-note muted">${escHtml(tariff.note || "")}</div>
+        <div class="price-note muted">${escHtml(DEMO_NOTE)}</div>
         <div class="block"><div class="block-title">Что входит</div><ul>${included.map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul></div>`;
     }
     el("result-next").innerHTML = `
@@ -417,6 +421,7 @@
         <div class="score-pill">${est.branch === "ai" ? "AI-бот" : "Сценарный бот"} · лид: ${heatLabel} · бюджет ${escHtml(est.score.budget_fork)}</div>
         <div class="price-vilka">${fmtMoney(price.min)} — ${fmtMoney(price.max)}</div>
         <div class="price-note muted">середина ≈ ${fmtMoney(price.estimate)} · срок: ${escHtml(est.terms || "")}</div>
+        <div class="price-note muted">${escHtml(DEMO_NOTE)}</div>
         <div class="block"><div class="block-title">Что входит</div><ul>${est.included.map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul></div>`;
       if (est.consult && est.consult.needed) {
         box.innerHTML += `<div class="consult-hint">💬 Вижу нюансы (${escHtml(est.consult.reasons.join(", "))}) — на созвоне зафиксируем точную цену.</div>`;
@@ -493,6 +498,7 @@
     <p><b>Реквизиты:</b> ${escHtml(c.legal)}</p>
     <p>Телефон: ${escHtml(c.phone)} · Email: ${escHtml(c.email)} · Telegram: ${escHtml(c.telegram)}</p>
     <p>Предложение действительно 14 дней. Данные обработаны с согласия (152-ФЗ) и используются только для этого КП.</p>
+    <p>${escHtml(DEMO_NOTE)}</p>
   </div>
   <button class="print-btn" onclick="window.print()">Сохранить в PDF / печать</button>
 </body></html>`;
