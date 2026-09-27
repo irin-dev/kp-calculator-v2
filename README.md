@@ -33,11 +33,15 @@ kp-calculator-v2/
 ├── src/
 │   ├── calculator.py      # формула расчёта + единый источник правды
 │   ├── app.py             # HTTP-сервер (статика + POST /api/estimate)
+│   ├── make-license.py    # генератор LICENSE (MIT) из переменной LICENSE_HOLDER
 │   └── static/            # index.html, main.js, style.css (индиго-тема, адаптив)
 ├── tests/
 │   └── test_calculator.py # 28 юнит-тестов
 └── screenshots/           # скриншоты работающего проекта
 ```
+
+Лицензия MIT генерируется из `.env`, чтобы имя правообладателя не попадало в
+git: впишите `LICENSE_HOLDER=` в `.env` и выполните `python src/make-license.py`.
 
 ## Формула
 
