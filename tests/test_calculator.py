@@ -12,8 +12,11 @@ test_calculator.py — тесты движка расчёта КП (версия
   * вилку (min <= estimate <= max) во всех сценариях,
   * триггеры созвона (гибрид / «помогите» / 3+ «не знаю» / бюджет > 100к),
   * мягкие выходы нерелеванта (до 30к + AI; «просто интересуюсь»),
-  * скоринг лида (горячий/тёплый/холодный).
+  * скоринг лида (горячий/тёплый/холодный),
+  * согласованность таблицы весов и кода (validate_weights) и fail loud
+    на новой, ещё не классифицированной услуге.
 """
+import copy
 import os
 import sys
 import unittest
@@ -29,6 +32,9 @@ from calculator import (
     check_soft_exit,
     check_consult,
     lead_score,
+    load_quiz,
+    undefined_weights,
+    validate_weights,
 )
 
 
@@ -260,6 +266,92 @@ class TestEvaluate(unittest.TestCase):
         res = evaluate(ai_answers())
         self.assertEqual(res["branch"], "ai")
         self.assertIn("ИИ-бот", res["included"][0])
+
+
+class TestWeightConfig(unittest.TestCase):
+    """
+    Шаг 0: согласованность таблицы весов (quiz.json) и кода (calculator.py).
+
+    Регрессия на молчаливую потерю цены: клиентская услуга «1С:ERP» была
+    объявлена весом, но не классифицирована в коде — 25 000 ₽ выпадали из
+    счёта без единой ошибки. Теперь такой вес останавливает расчёт.
+    """
+
+    def setUp(self):
+        self.quiz = copy.deepcopy(load_quiz())
+
+    @staticmethod
+    def _add_option(quiz, screen_id, value, label, weight):
+        for screen in quiz["screens"]:
+            if screen["id"] == screen_id:
+                screen["options"].append(
+                    {"value": value, "label": label, "weight": weight}
+                )
+                return
+        raise AssertionError(f"нет экрана {screen_id}")
+
+    def test_shipped_quiz_is_consistent(self):
+        """Реальный quiz.json: неизвестных и необъявленных весов быть не должно."""
+        self.assertEqual(validate_weights(), [])
+        self.assertEqual(undefined_weights(), [])
+
+    def test_new_integration_fails_loud(self):
+        """Услуга 1С:ERP: вес есть, а кода нет -> падаем, а не занижаем счёт."""
+        self.quiz["weights"]["integration_erp"] = 25000
+        self._add_option(self.quiz, "integrations", "erp", "1С:ERP", "integration_erp")
+
+        self.assertEqual(validate_weights(self.quiz), ["integration_erp"])
+
+        answers = scripted_answers(integrations=["crm", "erp"])
+        with self.assertRaises(ValueError) as ctx:
+            collect_parameters(answers, self.quiz)
+        self.assertIn("integration_erp", str(ctx.exception))
+        with self.assertRaises(ValueError):
+            estimate_range(answers, self.quiz)
+        with self.assertRaises(ValueError):
+            evaluate(answers, self.quiz)
+
+    def test_undefined_weight_fails_loud(self):
+        """Опция ссылается на вес, которого нет в таблице weights."""
+        self._add_option(self.quiz, "integrations", "sms", "SMS-рассылка", "integration_sms")
+
+        self.assertEqual(undefined_weights(self.quiz), ["integration_sms"])
+        with self.assertRaises(ValueError) as ctx:
+            collect_parameters(scripted_answers(integrations=["sms"]), self.quiz)
+        self.assertIn("integration_sms", str(ctx.exception))
+
+    def test_new_multiplier_fails_loud(self):
+        """Новый множитель тоже обязан быть описан в коде (раньше терялся)."""
+        self.quiz["weights"]["weekend_multiplier"] = 1.2
+        self._add_option(self.quiz, "deadline", "weekend", "Нужно на выходных",
+                         "weekend_multiplier")
+        with self.assertRaises(ValueError) as ctx:
+            collect_parameters(scripted_answers(deadline="weekend"), self.quiz)
+        self.assertIn("weekend_multiplier", str(ctx.exception))
+
+    def test_classified_new_integration_is_priced(self):
+        """Обратная сторона: классифицировали услугу -> сумма попала в счёт."""
+        import calculator as calc
+
+        self.quiz["weights"]["integration_erp"] = 25000
+        self._add_option(self.quiz, "integrations", "erp", "1С:ERP", "integration_erp")
+        self.assertEqual(validate_weights(self.quiz), ["integration_erp"])
+
+        original = calc.INTEGRATION_WEIGHTS
+        calc.INTEGRATION_WEIGHTS = original + ("integration_erp",)
+        try:
+            self.assertEqual(validate_weights(self.quiz), [])
+            p = collect_parameters(scripted_answers(integrations=["crm", "erp"]), self.quiz)
+            r = estimate_range(scripted_answers(integrations=["crm", "erp"]), self.quiz)
+        finally:
+            calc.INTEGRATION_WEIGHTS = original
+
+        # сумма считается по таблице весов, а не «зашитым» числам —
+        # тест одинаково работает в студийной и учебной версиях
+        expected = self.quiz["weights"]["integration_crm"] + 25000
+        self.assertEqual(p["integrations"], expected)
+        # и это видно в цене, а не только в параметрах
+        self.assertEqual(r["adders"], expected)
 
 
 if __name__ == "__main__":

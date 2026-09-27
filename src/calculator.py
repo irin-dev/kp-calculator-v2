@@ -41,6 +41,77 @@ def load_answers():
 
 
 # ---------------------------------------------------------------------------
+# Шаг 0. КАРТА ВЕСОВ: имя веса -> категория параметра расчёта
+# ---------------------------------------------------------------------------
+# ⚠️ ПРАВИЛО ДОБАВЛЕНИЯ УСЛУГИ (обязательный порядок, иначе цена молча занизится):
+#
+#   1. Объявить вес в quiz.json → "weights": { "integration_erp": 25000 }
+#   2. Навесить его на опцию экрана → { "value": "erp", "weight": "integration_erp" }
+#   3. Классифицировать здесь, в одной из констант ниже
+#   4. Добавить тест (tests/test_calculator.py) на эту услугу
+#
+# Что будет без шага 3: collect_parameters не узнает, куда положить число,
+# и МОЛЧА выбросит его — счёт останется без 25 000 ₽, ошибок не будет.
+# Раньше ровно так и случилось с «1С:ERP». Теперь это падает сразу
+# (ValueError), а validate_weights() находит такие веса ещё на этапе тестов.
+INTEGRATION_WEIGHTS = ("integration_crm", "integration_payments", "integration_sheets")
+AI_MODULE_WEIGHTS = ("ai_knowledge", "ai_finetune")
+FLAG_WEIGHTS = ("admin_panel",)
+MULTIPLIER_WEIGHTS = ("local_multiplier", "urgency_multiplier")
+
+
+def is_classified(weight_key):
+    """Код веса известен collect_parameters? (список категорий — источник правды)"""
+    return (weight_key in INTEGRATION_WEIGHTS
+            or weight_key in AI_MODULE_WEIGHTS
+            or weight_key in FLAG_WEIGHTS
+            or weight_key in MULTIPLIER_WEIGHTS)
+
+
+def _referenced_weights(quiz=None):
+    """
+    Отдаёт тройки (имя веса, id экрана, значение опции) для всех опций
+    экранов, у которых объявлен вес. Служебная функция для проверок конфига.
+    """
+    quiz = quiz or load_quiz()
+    for screen in quiz["screens"]:
+        for opt in screen.get("options", []):
+            weight_key = opt.get("weight")
+            if weight_key:
+                yield weight_key, screen.get("id", "?"), opt.get("value", "?")
+
+
+def validate_weights(quiz=None):
+    """
+    Проверка конфига: веса, на которые ссылаются опции экранов, но которые
+    `collect_parameters` не умеет разбирать. Непустой список = новая услуга
+    молча выпала бы из счёта. Пустой список = конфиг согласован с кодом.
+
+    Зовётся тестами (см. tests/test_calculator.py) и пригоден для быстрой
+    проверки вручную: `python src/calculator.py` печатает результат.
+    """
+    quiz = quiz or load_quiz()
+    declared = quiz["weights"]
+    return sorted({
+        key for key, _screen, _value in _referenced_weights(quiz)
+        if key in declared and not is_classified(key)
+    })
+
+
+def undefined_weights(quiz=None):
+    """
+    Проверка конфига: опции ссылаются на веса, которых НЕТ в таблице `weights`.
+    Такая опция тоже молча ничего не добавляла бы к цене.
+    """
+    quiz = quiz or load_quiz()
+    declared = quiz["weights"]
+    return sorted({
+        key for key, _screen, _value in _referenced_weights(quiz)
+        if key not in declared
+    })
+
+
+# ---------------------------------------------------------------------------
 # Шаг 1. Ветка проекта
 # ---------------------------------------------------------------------------
 def detect_branch(answers, quiz=None):
@@ -102,6 +173,9 @@ def collect_parameters(answers, quiz=None):
        * веса < 100   → это множитель (1.3, 1.5, 2.0…) — входит во всю цену
     Это простое правило держит quiz.json декларативным: добавить опцию =
     добавить `"weight": "название_веса"` в одну строчку.
+
+    ⚠️ Но «одна строчка» работает только вместе с Шагом 0 (см. карту весов
+    выше). Неизвестный код веса — это ValueError, а не тихое игнорирование.
     """
     quiz = quiz or load_quiz()
     w = quiz["weights"]                       # таблица весов из quiz.json
@@ -124,9 +198,25 @@ def collect_parameters(answers, quiz=None):
             weight_key = opt.get("weight")           # например "integration_crm"
             if not weight_key or opt["value"] not in values:
                 continue
+
+            # Fail loud: опция ссылается на вес, которого нет в таблице весов
             val = w.get(weight_key)
             if val is None:
-                continue
+                raise ValueError(
+                    f"Вес «{weight_key}» (экран «{screen['id']}», опция "
+                    f"«{opt['value']}») не объявлен в quiz['weights'] — "
+                    f"эта услуга не будет учтена в цене"
+                )
+            # Fail loud: код веса не классифицирован в Шаге 0
+            if not is_classified(weight_key):
+                amount = f"{val:,.0f} ₽".replace(",", " ")
+                raise ValueError(
+                    f"Вес «{weight_key}» (экран «{screen['id']}», опция "
+                    f"«{opt['value']}») не классифицирован в collect_parameters: "
+                    f"добавь его в INTEGRATION_WEIGHTS / AI_MODULE_WEIGHTS / "
+                    f"FLAG_WEIGHTS / MULTIPLIER_WEIGHTS (src/calculator.py) — "
+                    f"иначе {amount} молча выпадет из счёта"
+                )
 
             # Множители (вес < 100): сразу смотрим их смысл по имени веса
             if val < 100:
@@ -138,11 +228,11 @@ def collect_parameters(answers, quiz=None):
 
             # Денежные слагаемые (вес ≥ 1000)
             number = float(val)
-            if weight_key in ("integration_crm", "integration_payments", "integration_sheets"):
+            if weight_key in INTEGRATION_WEIGHTS:
                 integrations += number
-            elif weight_key == "admin_panel":
+            elif weight_key in FLAG_WEIGHTS:
                 admin_panel = True
-            elif weight_key in ("ai_knowledge", "ai_finetune"):
+            elif weight_key in AI_MODULE_WEIGHTS:
                 ai_module += number
 
     return {
@@ -420,3 +510,9 @@ if __name__ == "__main__":
     print("Vilka:", res["price"]["min"], "-", res["price"]["max"], "RUB")
     print("Vhodit:", "; ".join(res["included"]))
     print("Lid:", res["score"])
+
+    # Согласованность таблицы весов и кода (Шаг 0). Непустой вывод = баг конфига.
+    unknown = validate_weights()
+    missing = undefined_weights()
+    print("Ne klassifitsirovano:", unknown or "net")
+    print("Ne obyavleno v weights:", missing or "net")

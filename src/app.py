@@ -114,10 +114,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         super().do_GET()
 
-    def _send_json(self, obj):
-        """Отправляет JSON-ответ 200."""
+    def _send_json(self, obj, status=200):
+        """Отправляет JSON-ответ (по умолчанию 200)."""
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -138,7 +138,19 @@ class Handler(SimpleHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             self.send_error(400, "Bad JSON")
             return
-        self._send_json(evaluate(answers))
+        try:
+            result = evaluate(answers)
+        except ValueError as exc:
+            # Ошибка КОНФИГУРАЦИИ (quiz.json против calculator.py), а не клиента.
+            # Клиенту не показываем внутренности и трейсбек — внятный текст,
+            # подробности уходят в лог сервера.
+            self.log_error("calc config error: %s", exc)
+            self._send_json(
+                {"error": "Калькулятор временно не может посчитать КП. Попробуйте позже."},
+                status=400,
+            )
+            return
+        self._send_json(result)
 
 
 def main():
